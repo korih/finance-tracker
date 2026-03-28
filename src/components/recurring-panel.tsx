@@ -2,6 +2,7 @@ import { RefreshCw, Trash2 } from "lucide-react";
 import type { RecurringRule } from "@/lib/recurring";
 import { deleteRecurringRule } from "@/app/actions/recurring";
 import { Button } from "@/components/ui/button";
+import { EditRecurringExpenseButton } from "@/components/edit-recurring-expense-button";
 
 const RECURRENCE_LABELS: Record<string, string> = {
   daily:   "Daily",
@@ -65,6 +66,7 @@ export function RecurringPanel({
             <span className="tabular-nums text-sm font-medium">
               ${rule.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
+            <EditRecurringExpenseButton rule={rule} spreadsheetId={spreadsheetId} />
             <form action={deleteRecurringRule}>
               <input type="hidden" name="id" value={rule.id} />
               <input type="hidden" name="spreadsheetId" value={spreadsheetId} />

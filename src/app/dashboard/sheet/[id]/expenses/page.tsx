@@ -85,7 +85,10 @@ export default async function SheetPage({
 
   // 4. Filter all transactions to the same period for the table
   const tableRows = allTransactions.filter((row) => {
-    if (row.excluded) return true; // always show excluded rows so user can restore them
+    // Soft-deleted recurring entries are hidden entirely (no restore option; delete is permanent for recurring)
+    if (row.excluded && row.source === "recurring") return false;
+    // Sheet/manual excluded rows are shown greyed-out so the user can restore them
+    if (row.excluded) return true;
     return filtered.some(
       (t) => t.timestamp === row.timestamp && t.merchant === row.merchant && t.amount === row.amount
     );

@@ -99,7 +99,7 @@ export function TransactionsTable({
                           <input type="hidden" name="spreadsheetId" value={spreadsheetId} />
                           <Button type="submit" variant="ghost" size="icon"
                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            title={row.source === "manual" ? "Delete" : "Hide from calculations"}>
+                            title={row.source === "sheet" ? "Hide from calculations" : "Delete"}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </form>

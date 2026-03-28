@@ -105,6 +105,42 @@ export async function createRecurringRule(
     .run();
 }
 
+export async function updateRecurringRule(
+  db: D1Database,
+  id: number,
+  spreadsheetId: string,
+  updates: {
+    merchant?: string | null;
+    card?: string | null;
+    income_source?: string | null;
+    income_type?: RecurringRule["income_type"];
+    amount?: number;
+    recurrence_type?: RecurrenceType;
+    recurrence_days?: number | null;
+  }
+): Promise<void> {
+  // Only update editable fields — never touch start_date, last_generated_date, next_due_date
+  await db
+    .prepare(
+      `UPDATE recurring_rules
+         SET merchant = ?, card = ?, income_source = ?, income_type = ?,
+             amount = ?, recurrence_type = ?, recurrence_days = ?
+       WHERE id = ? AND spreadsheet_id = ?`
+    )
+    .bind(
+      updates.merchant ?? null,
+      updates.card ?? null,
+      updates.income_source ?? null,
+      updates.income_type ?? null,
+      updates.amount,
+      updates.recurrence_type,
+      updates.recurrence_days ?? null,
+      id,
+      spreadsheetId
+    )
+    .run();
+}
+
 export async function removeRecurringRule(
   db: D1Database,
   id: number,

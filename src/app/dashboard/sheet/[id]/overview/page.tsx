@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getDB, queryTransactions } from "@/lib/db";
 import { fetchIncomeEntries, type IncomePeriod } from "@/lib/income";
+import { processRecurringRules } from "@/lib/recurring";
 import { SheetNav } from "@/components/sheet-nav";
 import { StatCard } from "@/components/stat-card";
 import { OverviewChart, type OverviewDataPoint } from "@/components/overview-chart";
@@ -45,6 +46,7 @@ export default async function OverviewPage({
   const year = rawYear ? parseInt(rawYear) : new Date().getFullYear();
 
   const db = await getDB();
+  await processRecurringRules(db, id);
 
   const [incomeEntries, transactions] = await Promise.all([
     fetchIncomeEntries(id, period, year),

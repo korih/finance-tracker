@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { getDB } from "@/lib/db";
-import { createRecurringRule, removeRecurringRule, type RecurrenceType } from "@/lib/recurring";
+import { createRecurringRule, removeRecurringRule, updateRecurringRule, type RecurrenceType, type RecurringRule } from "@/lib/recurring";
 import type { IncomeType } from "@/lib/income";
 
 export async function addRecurringExpense(formData: FormData) {
@@ -39,7 +39,7 @@ export async function addRecurringExpense(formData: FormData) {
     next_due_date:   startDate, // immediately due so first run generates start_date entry
   });
 
-  revalidatePath(`/dashboard/sheet/${spreadsheetId}`);
+  revalidatePath(`/dashboard/sheet/${spreadsheetId}/expenses`);
 }
 
 export async function addRecurringIncome(formData: FormData) {
@@ -93,7 +93,50 @@ export async function deleteRecurringRule(formData: FormData) {
 
   const path = entryType === "income"
     ? `/dashboard/sheet/${spreadsheetId}/income`
-    : `/dashboard/sheet/${spreadsheetId}`;
+    : `/dashboard/sheet/${spreadsheetId}/expenses`;
 
   revalidatePath(path);
+}
+
+export async function editRecurringRule(formData: FormData) {
+  const session = await auth();
+  if (!session?.accessToken) throw new Error("Unauthorized");
+
+  const id            = parseInt(formData.get("id") as string);
+  const spreadsheetId = formData.get("spreadsheetId") as string;
+  const entryType     = formData.get("entry_type") as string;
+
+  if (isNaN(id) || !spreadsheetId) throw new Error("Invalid input");
+
+  const amount        = parseFloat(formData.get("amount") as string);
+  const recurrenceType = (formData.get("recurrence_type") as RecurrenceType) ?? "monthly";
+  const recurrenceDays = formData.get("recurrence_days")
+    ? parseInt(formData.get("recurrence_days") as string)
+    : null;
+
+  const db = await getDB();
+
+  if (entryType === "income") {
+    const incomeSource = (formData.get("source") as string)?.trim();
+    const incomeType   = formData.get("type") as RecurringRule["income_type"];
+    await updateRecurringRule(db, id, spreadsheetId, {
+      income_source:   incomeSource,
+      income_type:     incomeType,
+      amount,
+      recurrence_type: recurrenceType,
+      recurrence_days: recurrenceType === "custom" ? recurrenceDays : null,
+    });
+    revalidatePath(`/dashboard/sheet/${spreadsheetId}/income`);
+  } else {
+    const merchant = (formData.get("merchant") as string)?.trim();
+    const card     = (formData.get("card") as string)?.trim();
+    await updateRecurringRule(db, id, spreadsheetId, {
+      merchant,
+      card,
+      amount,
+      recurrence_type: recurrenceType,
+      recurrence_days: recurrenceType === "custom" ? recurrenceDays : null,
+    });
+    revalidatePath(`/dashboard/sheet/${spreadsheetId}/expenses`);
+  }
 }

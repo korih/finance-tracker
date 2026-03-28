@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import type { RecurringRule } from "@/lib/recurring";
 import { INCOME_TYPE_LABELS } from "@/lib/income";
 import { deleteRecurringRule } from "@/app/actions/recurring";
+import { EditRecurringIncomeButton } from "@/components/edit-recurring-income-button";
 
 const RECURRENCE_LABELS: Record<string, string> = {
   daily: "Daily", weekly: "Weekly", monthly: "Monthly",
@@ -70,6 +71,7 @@ export function RecurringIncomePanel({
             <span className="tabular-nums text-sm font-medium">
               ${rule.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
             </span>
+            <EditRecurringIncomeButton rule={rule} spreadsheetId={spreadsheetId} />
             <form action={deleteRecurringRule}>
               <input type="hidden" name="id" value={rule.id} />
               <input type="hidden" name="spreadsheetId" value={spreadsheetId} />
