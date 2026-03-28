@@ -37,8 +37,10 @@ function CustomTooltip({
 
 export function MerchantsChart({
   data,
+  accent = "red",
 }: {
   data: SpendingStats["topMerchants"];
+  accent?: "green" | "red";
 }) {
   if (data.length === 0) {
     return (
@@ -48,7 +50,9 @@ export function MerchantsChart({
     );
   }
 
-  const max = data[0]?.total ?? 1;
+  const colors = accent === "red"
+    ? { top: "#E05252", mid: "#E87A7A", rest: "#F5C4C4" }
+    : { top: "#4BAF82", mid: "#6CC49A", rest: "#B8E4D2" };
 
   return (
     <ResponsiveContainer width="100%" height={Math.max(180, data.length * 36)}>
@@ -74,10 +78,10 @@ export function MerchantsChart({
         />
         <Tooltip content={<CustomTooltip />} cursor={{ fill: "transparent" }} />
         <Bar dataKey="total" radius={[0, 4, 4, 0]}>
-          {data.map((entry, i) => (
+          {data.map((_entry, i) => (
             <Cell
-              key={entry.merchant}
-              fill={i === 0 ? "#4BAF82" : i === 1 ? "#6CC49A" : "#B8E4D2"}
+              key={i}
+              fill={i === 0 ? colors.top : i === 1 ? colors.mid : colors.rest}
             />
           ))}
         </Bar>

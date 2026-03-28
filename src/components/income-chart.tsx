@@ -1,27 +1,15 @@
 "use client";
 
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
-import type { SpendingStats } from "@/lib/stats";
-
-interface TooltipPayload {
-  value: number;
-}
+import type { IncomeBreakdownEntry } from "@/lib/income";
 
 function CustomTooltip({
-  active,
-  payload,
-  label,
+  active, payload, label,
 }: {
   active?: boolean;
-  payload?: TooltipPayload[];
+  payload?: { value: number }[];
   label?: string;
 }) {
   if (!active || !payload?.length) return null;
@@ -35,35 +23,21 @@ function CustomTooltip({
   );
 }
 
-export function MonthlyChart({
-  data,
-  accent = "red",
-}: {
-  data: SpendingStats["spendingBreakdown"];
-  accent?: "green" | "red";
-}) {
-  if (data.length === 0) {
+export function IncomeChart({ data }: { data: IncomeBreakdownEntry[] }) {
+  if (data.every((d) => d.total === 0)) {
     return (
       <p className="text-muted-foreground text-sm text-center py-8">
-        No dated transactions found.
+        No income entries found.
       </p>
     );
   }
 
   const max = Math.max(...data.map((d) => d.total));
-  const colors = accent === "red"
-    ? { current: "#E05252", high: "#E87A7A", base: "#F5C4C4" }
-    : { current: "#4BAF82", high: "#7DCAAA", base: "#B8E4D2" };
 
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-        <XAxis
-          dataKey="label"
-          tick={{ fontSize: 12 }}
-          tickLine={false}
-          axisLine={false}
-        />
+        <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
         <YAxis
           tickFormatter={(v: number) =>
             `$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`
@@ -80,10 +54,10 @@ export function MonthlyChart({
               key={i}
               fill={
                 entry.isCurrent
-                  ? colors.current
+                  ? "#4BAF82"
                   : entry.total === max && max > 0
-                    ? colors.high
-                    : colors.base
+                    ? "#7DCAAA"
+                    : "#B8E4D2"
               }
             />
           ))}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getSheetData } from "@/lib/google-sheets";
+import { getSheetHeaders, getSheetRowsFrom } from "@/lib/google-sheets";
 
 export async function GET(
   _request: Request,
@@ -15,8 +15,11 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const data = await getSheetData(session.accessToken, id);
-    return NextResponse.json(data);
+    const [headers, { rows }] = await Promise.all([
+      getSheetHeaders(session.accessToken, id),
+      getSheetRowsFrom(session.accessToken, id, 0),
+    ]);
+    return NextResponse.json({ headers, rows });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to read sheet data";

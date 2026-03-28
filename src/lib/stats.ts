@@ -1,5 +1,7 @@
 import type { SheetData } from "./google-sheets";
 
+export type Period = "day" | "week" | "month" | "year" | "all";
+
 export interface Transaction {
   timestamp: string;
   merchant: string;
@@ -8,12 +10,19 @@ export interface Transaction {
   card: string;
 }
 
+export interface SpendingBreakdownEntry {
+  key: string;       // sort/identity key (e.g. "2025", "2025-03", "2025-03-24")
+  label: string;     // display label for the X axis
+  total: number;
+  isCurrent: boolean; // true for the bucket containing "now" — used for chart highlight
+}
+
 export interface SpendingStats {
   totalSpent: number;
-  thisMonthTotal: number;
+  transactionCount: number;
   avgTransaction: number;
   largestTransaction: { amount: number; merchant: string; date: string };
-  monthlyTotals: { month: string; label: string; total: number }[];
+  spendingBreakdown: SpendingBreakdownEntry[];
   topMerchants: { merchant: string; total: number }[];
   byCard: { card: string; total: number; pct: number }[];
   recentTransactions: Transaction[];
@@ -32,7 +41,8 @@ function findColIndex(headers: string[], ...names: string[]): number {
   );
 }
 
-export function computeStats(data: SheetData): SpendingStats {
+/** Parse raw sheet rows into typed transactions, filtering out invalid/zero-amount rows. */
+export function parseSheetToTransactions(data: SheetData): Transaction[] {
   const { headers, rows } = data;
 
   const iTimestamp = findColIndex(headers, "timestamp", "date", "time");
@@ -57,13 +67,171 @@ export function computeStats(data: SheetData): SpendingStats {
     });
   }
 
+  return transactions;
+}
+
+// ─── Breakdown helpers ────────────────────────────────────────────────────────
+
+function toDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Returns the Monday of the ISO week containing d. */
+function getWeekStart(d: Date): Date {
+  const day = d.getDay(); // 0=Sun
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+/**
+ * Build the spending breakdown for the chart at the granularity one step below
+ * the selected period:
+ *   all   → by year
+ *   year  → by month
+ *   month → by week (Mon week-start as label)
+ *   week  → by day  (zero-fills all 7 days)
+ *   day   → by day  (single bar)
+ */
+function buildSpendingBreakdown(
+  transactions: Transaction[],
+  period: Period,
+  localDate?: string
+): SpendingBreakdownEntry[] {
+  const now = localDate ? new Date(`${localDate}T12:00:00`) : new Date();
+
+  // Which key corresponds to "now" (for chart highlight)
+  let currentKey: string;
+  if (period === "all")        currentKey = String(now.getFullYear());
+  else if (period === "year")  currentKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  else if (period === "month") currentKey = toDateKey(getWeekStart(now));
+  else                         currentKey = toDateKey(now); // week | day
+
+  const bucketMap = new Map<string, number>();
+
+  for (const t of transactions) {
+    const d = new Date(t.timestamp);
+    if (isNaN(d.getTime())) continue;
+
+    let key: string;
+    if (period === "all")        key = String(d.getFullYear());
+    else if (period === "year")  key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    else if (period === "month") key = toDateKey(getWeekStart(d));
+    else                         key = toDateKey(d); // week | day
+
+    bucketMap.set(key, (bucketMap.get(key) ?? 0) + t.amount);
+  }
+
+  // Zero-fill all 7 days of the week so the chart always shows a full week grid
+  if (period === "week") {
+    const weekStart = getWeekStart(now);
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      const k = toDateKey(d);
+      if (!bucketMap.has(k)) bucketMap.set(k, 0);
+    }
+  }
+
+  return Array.from(bucketMap.keys())
+    .sort()
+    .map((key) => {
+      let label: string;
+      if (period === "all") {
+        label = key; // "2024"
+      } else if (period === "year") {
+        const [y, m] = key.split("-");
+        const d = new Date(parseInt(y), parseInt(m) - 1);
+        label = d.toLocaleString("default", { month: "short", year: "2-digit" });
+      } else if (period === "month") {
+        const d = new Date(`${key}T12:00:00`);
+        label = d.toLocaleString("default", { month: "short", day: "numeric" });
+      } else {
+        const d = new Date(`${key}T12:00:00`);
+        label = period === "week"
+          ? d.toLocaleString("default", { weekday: "short" })
+          : d.toLocaleString("default", { month: "short", day: "numeric" });
+      }
+      return {
+        key,
+        label,
+        total: Math.round((bucketMap.get(key) ?? 0) * 100) / 100,
+        isCurrent: key === currentKey,
+      };
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Filter transactions to a specific time period.
+ *
+ * `localDate` should be a YYYY-MM-DD string representing today in the user's
+ * local timezone. When omitted the server's UTC clock is used, which may
+ * produce wrong results for users in non-UTC timezones near midnight.
+ */
+export function filterTransactionsByPeriod(
+  transactions: Transaction[],
+  period: Period,
+  options?: { year?: number; localDate?: string }
+): Transaction[] {
+  if (period === "all") return transactions;
+
+  // Anchor "now" to the client's local date when available.
+  // Append T12:00:00 so parsing treats it as local noon (avoids UTC-midnight edge cases).
+  const now = options?.localDate
+    ? new Date(`${options.localDate}T12:00:00`)
+    : new Date();
+
+  const year = options?.year;
+
+  return transactions.filter((t) => {
+    const d = new Date(t.timestamp);
+    if (isNaN(d.getTime())) return false;
+
+    if (period === "day") {
+      return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
+      );
+    }
+    if (period === "week") {
+      const startOfWeek = new Date(now);
+      const day = now.getDay();
+      startOfWeek.setDate(now.getDate() - (day === 0 ? 6 : day - 1)); // Monday
+      startOfWeek.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+      return d >= startOfWeek && d < endOfWeek;
+    }
+    if (period === "month") {
+      return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth()
+      );
+    }
+    if (period === "year") {
+      return d.getFullYear() === (year ?? now.getFullYear());
+    }
+    return true;
+  });
+}
+
+/** Compute spending stats from an already-parsed list of transactions (e.g. from D1). */
+export function computeStatsFromTransactions(
+  transactions: Transaction[],
+  period: Period = "all",
+  localDate?: string
+): SpendingStats {
   if (transactions.length === 0) {
     return {
       totalSpent: 0,
-      thisMonthTotal: 0,
+      transactionCount: 0,
       avgTransaction: 0,
       largestTransaction: { amount: 0, merchant: "", date: "" },
-      monthlyTotals: [],
+      spendingBreakdown: [],
       topMerchants: [],
       byCard: [],
       recentTransactions: [],
@@ -71,7 +239,6 @@ export function computeStats(data: SheetData): SpendingStats {
     };
   }
 
-  // Sort transactions by date descending (newest first)
   const sorted = [...transactions].sort((a, b) => {
     const da = new Date(a.timestamp).getTime();
     const db = new Date(b.timestamp).getTime();
@@ -79,48 +246,16 @@ export function computeStats(data: SheetData): SpendingStats {
   });
 
   const totalSpent = transactions.reduce((s, t) => s + t.amount, 0);
-  const avgTransaction = totalSpent / transactions.length;
+  const transactionCount = transactions.length;
+  const avgTransaction = totalSpent / transactionCount;
 
   const largest = transactions.reduce(
     (max, t) => (t.amount > max.amount ? t : max),
     transactions[0]
   );
 
-  // This month
-  const now = new Date();
-  const thisMonthTotal = transactions
-    .filter((t) => {
-      const d = new Date(t.timestamp);
-      return (
-        !isNaN(d.getTime()) &&
-        d.getMonth() === now.getMonth() &&
-        d.getFullYear() === now.getFullYear()
-      );
-    })
-    .reduce((s, t) => s + t.amount, 0);
+  const spendingBreakdown = buildSpendingBreakdown(transactions, period, localDate);
 
-  // Monthly totals — last 12 months
-  const monthMap = new Map<string, number>();
-  for (const t of transactions) {
-    const d = new Date(t.timestamp);
-    if (isNaN(d.getTime())) continue;
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    monthMap.set(key, (monthMap.get(key) ?? 0) + t.amount);
-  }
-
-  const allMonthKeys = Array.from(monthMap.keys()).sort();
-  const last12 = allMonthKeys.slice(-12);
-  const monthlyTotals = last12.map((key) => {
-    const [year, month] = key.split("-");
-    const d = new Date(parseInt(year), parseInt(month) - 1);
-    return {
-      month: key,
-      label: d.toLocaleString("default", { month: "short", year: "2-digit" }),
-      total: Math.round((monthMap.get(key) ?? 0) * 100) / 100,
-    };
-  });
-
-  // Top merchants
   const merchantMap = new Map<string, number>();
   for (const t of transactions) {
     const m = t.merchant || "Unknown";
@@ -134,20 +269,19 @@ export function computeStats(data: SheetData): SpendingStats {
       total: Math.round(total * 100) / 100,
     }));
 
-  // By card
   const cardMap = new Map<string, number>();
   for (const t of transactions) {
     const c = t.card || "Unknown";
     cardMap.set(c, (cardMap.get(c) ?? 0) + t.amount);
   }
-  const cardEntries = Array.from(cardMap.entries()).sort((a, b) => b[1] - a[1]);
-  const byCard = cardEntries.map(([card, total]) => ({
-    card,
-    total: Math.round(total * 100) / 100,
-    pct: Math.round((total / totalSpent) * 100),
-  }));
+  const byCard = Array.from(cardMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([card, total]) => ({
+      card,
+      total: Math.round(total * 100) / 100,
+      pct: Math.round((total / totalSpent) * 100),
+    }));
 
-  // Date range
   const dates = transactions
     .map((t) => new Date(t.timestamp))
     .filter((d) => !isNaN(d.getTime()))
@@ -169,17 +303,22 @@ export function computeStats(data: SheetData): SpendingStats {
 
   return {
     totalSpent: Math.round(totalSpent * 100) / 100,
-    thisMonthTotal: Math.round(thisMonthTotal * 100) / 100,
+    transactionCount,
     avgTransaction: Math.round(avgTransaction * 100) / 100,
     largestTransaction: {
       amount: largest.amount,
       merchant: largest.merchant,
       date: largest.timestamp,
     },
-    monthlyTotals,
+    spendingBreakdown,
     topMerchants,
     byCard,
     recentTransactions: sorted.slice(0, 20),
     dateRange,
   };
+}
+
+/** Convenience wrapper: parse sheet data then compute stats. */
+export function computeStats(data: SheetData): SpendingStats {
+  return computeStatsFromTransactions(parseSheetToTransactions(data));
 }

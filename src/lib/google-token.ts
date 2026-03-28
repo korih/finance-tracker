@@ -1,3 +1,10 @@
+interface TokenResponse {
+  access_token: string;
+  expires_in: number;
+  refresh_token?: string;
+  error?: string;
+}
+
 export async function refreshAccessToken(refreshToken: string): Promise<{
   accessToken: string;
   expiresAt: number;
@@ -14,7 +21,7 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
     }),
   });
 
-  const data = await response.json();
+  const data = (await response.json()) as TokenResponse;
 
   if (!response.ok) {
     throw new Error(`Token refresh failed: ${data.error}`);

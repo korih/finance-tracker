@@ -7,5 +7,15 @@
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "finance-tracker-db",
+      "database_id": "54f078e8-2bb3-4c26-b29a-eb1966eaba30"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
   }
 }

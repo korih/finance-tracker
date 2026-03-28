@@ -1,6 +1,6 @@
 import type { SpendingStats } from "@/lib/stats";
 
-export function CardBreakdown({ data }: { data: SpendingStats["byCard"] }) {
+export function CardBreakdown({ data, accent = "red" }: { data: SpendingStats["byCard"]; accent?: "green" | "red" }) {
   if (data.length === 0) {
     return (
       <p className="text-muted-foreground text-sm text-center py-8">
@@ -23,7 +23,7 @@ export function CardBreakdown({ data }: { data: SpendingStats["byCard"] }) {
           <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full"
-              style={{ width: `${entry.pct}%`, background: "#4BAF82" }}
+              style={{ width: `${entry.pct}%`, background: accent === "red" ? "#E05252" : "#4BAF82" }}
             />
           </div>
         </div>
