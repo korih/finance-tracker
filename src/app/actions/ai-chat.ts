@@ -14,7 +14,7 @@ export async function askFinanceAI(
   spreadsheetId: string
 ): Promise<{ answer: string }> {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const now = new Date();
   const currentYear = now.getFullYear();

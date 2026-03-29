@@ -224,7 +224,8 @@ export function filterTransactionsByPeriod(
 export function computeStatsFromTransactions(
   transactions: Transaction[],
   period: Period = "all",
-  localDate?: string
+  localDate?: string,
+  hiddenCategories?: { merchants: Set<string>; chart: Set<string>; stats: Set<string> }
 ): SpendingStats {
   if (transactions.length === 0) {
     return {
@@ -246,19 +247,30 @@ export function computeStatsFromTransactions(
     return isNaN(db - da) ? 0 : db - da;
   });
 
+  const forMerchants = hiddenCategories?.merchants.size
+    ? transactions.filter((t) => !t.category || !hiddenCategories!.merchants.has(t.category))
+    : transactions;
+  const forChart = hiddenCategories?.chart.size
+    ? transactions.filter((t) => !t.category || !hiddenCategories!.chart.has(t.category))
+    : transactions;
+  const forStats = hiddenCategories?.stats.size
+    ? transactions.filter((t) => !t.category || !hiddenCategories!.stats.has(t.category))
+    : transactions;
+
   const totalSpent = transactions.reduce((s, t) => s + t.amount, 0);
   const transactionCount = transactions.length;
-  const avgTransaction = totalSpent / transactionCount;
+  const avgTransaction = forStats.length > 0
+    ? forStats.reduce((s, t) => s + t.amount, 0) / forStats.length
+    : 0;
 
-  const largest = transactions.reduce(
-    (max, t) => (t.amount > max.amount ? t : max),
-    transactions[0]
-  );
+  const largest = forStats.length > 0
+    ? forStats.reduce((max, t) => (t.amount > max.amount ? t : max), forStats[0])
+    : { amount: 0, merchant: "", timestamp: "" };
 
-  const spendingBreakdown = buildSpendingBreakdown(transactions, period, localDate);
+  const spendingBreakdown = buildSpendingBreakdown(forChart, period, localDate);
 
   const merchantMap = new Map<string, number>();
-  for (const t of transactions) {
+  for (const t of forMerchants) {
     const m = t.merchant || "Unknown";
     merchantMap.set(m, (merchantMap.get(m) ?? 0) + t.amount);
   }

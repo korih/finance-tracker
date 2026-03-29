@@ -17,7 +17,7 @@ function sheetPath(spreadsheetId: string) {
 
 export async function addCategory(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const spreadsheetId = formData.get("spreadsheetId") as string;
   const name          = (formData.get("name") as string)?.trim();
@@ -40,13 +40,19 @@ export async function addCategory(formData: FormData) {
 
 export async function editCategoryPatterns(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const id            = parseInt(formData.get("id") as string);
   const spreadsheetId = formData.get("spreadsheetId") as string;
   const rawPatterns   = (formData.get("patterns") as string) || "";
   const name          = (formData.get("name") as string)?.trim();
   const color         = (formData.get("color") as string) || undefined;
+  const hideFromMerchantsRaw = formData.get("hide_from_merchants");
+  const hideFromChartRaw     = formData.get("hide_from_chart");
+  const hideFromStatsRaw     = formData.get("hide_from_stats");
+  const hide_from_merchants  = hideFromMerchantsRaw !== null ? hideFromMerchantsRaw === "1" : undefined;
+  const hide_from_chart      = hideFromChartRaw     !== null ? hideFromChartRaw     === "1" : undefined;
+  const hide_from_stats      = hideFromStatsRaw     !== null ? hideFromStatsRaw     === "1" : undefined;
 
   if (isNaN(id) || !spreadsheetId) throw new Error("Invalid input");
 
@@ -63,8 +69,11 @@ export async function editCategoryPatterns(formData: FormData) {
   const affectedNames = existing ? [existing.name] : [];
 
   await updateCategory(db, id, spreadsheetId, {
-    ...(name  ? { name }  : {}),
-    ...(color ? { color } : {}),
+    ...(name                 ? { name }                 : {}),
+    ...(color                ? { color }                : {}),
+    ...(hide_from_merchants !== undefined ? { hide_from_merchants } : {}),
+    ...(hide_from_chart     !== undefined ? { hide_from_chart }     : {}),
+    ...(hide_from_stats     !== undefined ? { hide_from_stats }     : {}),
     patterns,
   });
 
@@ -75,7 +84,7 @@ export async function editCategoryPatterns(formData: FormData) {
 
 export async function removeCategory(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const id            = parseInt(formData.get("id") as string);
   const spreadsheetId = formData.get("spreadsheetId") as string;

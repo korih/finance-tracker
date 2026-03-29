@@ -1,18 +1,7 @@
 import "next-auth";
-import "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
-    accessToken?: string;
-    error?: "RefreshTokenError";
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    accessToken?: string;
-    refreshToken?: string;
-    expiresAt?: number;
-    error?: "RefreshTokenError";
+    // session.user.id is the Google OAuth sub — always present after sign-in
   }
 }

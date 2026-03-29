@@ -18,6 +18,9 @@ export interface Category {
   color: string;
   /** Regex pattern strings — stored as JSON in D1, parsed on read */
   patterns: string[];
+  hide_from_merchants: boolean;
+  hide_from_chart: boolean;
+  hide_from_stats: boolean;
   sort_order: number;
   inserted_at: string;
 }
@@ -64,10 +67,21 @@ const CLASSIFIERS: Classifier[] = [new PatternClassifier()];
 
 // ── DB helpers ───────────────────────────────────────────────────────────────
 
-type RawCategory = Omit<Category, "patterns"> & { patterns: string };
+type RawCategory = Omit<Category, "patterns" | "hide_from_merchants" | "hide_from_chart" | "hide_from_stats"> & {
+  patterns: string;
+  hide_from_merchants: number;
+  hide_from_chart: number;
+  hide_from_stats: number;
+};
 
 function parseCategory(raw: RawCategory): Category {
-  return { ...raw, patterns: JSON.parse(raw.patterns || "[]") as string[] };
+  return {
+    ...raw,
+    patterns: JSON.parse(raw.patterns || "[]") as string[],
+    hide_from_merchants: raw.hide_from_merchants === 1,
+    hide_from_chart:     raw.hide_from_chart     === 1,
+    hide_from_stats:     raw.hide_from_stats      === 1,
+  };
 }
 
 export async function getCategories(
@@ -102,14 +116,17 @@ export async function updateCategory(
   db: D1Database,
   id: number,
   spreadsheetId: string,
-  data: Partial<Pick<Category, "name" | "color" | "patterns">>
+  data: Partial<Pick<Category, "name" | "color" | "patterns" | "hide_from_merchants" | "hide_from_chart" | "hide_from_stats">>
 ): Promise<void> {
   const sets: string[] = [];
   const binds: unknown[] = [];
 
-  if (data.name     !== undefined) { sets.push("name = ?");     binds.push(data.name); }
-  if (data.color    !== undefined) { sets.push("color = ?");    binds.push(data.color); }
-  if (data.patterns !== undefined) { sets.push("patterns = ?"); binds.push(JSON.stringify(data.patterns)); }
+  if (data.name                !== undefined) { sets.push("name = ?");                 binds.push(data.name); }
+  if (data.color               !== undefined) { sets.push("color = ?");                binds.push(data.color); }
+  if (data.patterns            !== undefined) { sets.push("patterns = ?");             binds.push(JSON.stringify(data.patterns)); }
+  if (data.hide_from_merchants !== undefined) { sets.push("hide_from_merchants = ?");  binds.push(data.hide_from_merchants ? 1 : 0); }
+  if (data.hide_from_chart     !== undefined) { sets.push("hide_from_chart = ?");      binds.push(data.hide_from_chart     ? 1 : 0); }
+  if (data.hide_from_stats     !== undefined) { sets.push("hide_from_stats = ?");      binds.push(data.hide_from_stats      ? 1 : 0); }
 
   if (sets.length === 0) return;
   binds.push(id, spreadsheetId);

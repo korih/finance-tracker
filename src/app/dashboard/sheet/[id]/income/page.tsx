@@ -37,8 +37,7 @@ export default async function IncomePage({
   searchParams: Promise<{ period?: string; y?: string }>;
 }) {
   const session = await auth();
-  if (!session?.accessToken) redirect("/auth/signin");
-  if (session.error === "RefreshTokenError") redirect("/auth/signin");
+  if (!session?.user?.id) redirect("/auth/signin");
 
   const [{ id }, { period: rawPeriod, y: rawYear }] = await Promise.all([
     params,

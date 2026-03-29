@@ -15,7 +15,7 @@ function sheetPath(spreadsheetId: string) {
 
 export async function addSavingsGoal(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const spreadsheetId  = formData.get("spreadsheetId") as string;
   const name           = (formData.get("name") as string)?.trim();
@@ -34,7 +34,7 @@ export async function addSavingsGoal(formData: FormData) {
 
 export async function editSavingsGoal(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const id             = parseInt(formData.get("id") as string);
   const spreadsheetId  = formData.get("spreadsheetId") as string;
@@ -59,7 +59,7 @@ export async function editSavingsGoal(formData: FormData) {
 
 export async function removeSavingsGoal(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const id            = parseInt(formData.get("id") as string);
   const spreadsheetId = formData.get("spreadsheetId") as string;

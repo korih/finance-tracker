@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { syncTransactions } from "@/lib/sync";
 import {
   getDB,
   queryTransactions,
@@ -59,8 +58,7 @@ export default async function SheetPage({
 }) {
   const session = await auth();
 
-  if (!session?.accessToken) redirect("/auth/signin");
-  if (session.error === "RefreshTokenError") redirect("/auth/signin");
+  if (!session?.user?.id) redirect("/auth/signin");
 
   const [{ id }, { period: rawPeriod, y: rawYear, d: localDate }] =
     await Promise.all([params, searchParams]);
@@ -68,9 +66,7 @@ export default async function SheetPage({
   const period = parsePeriod(rawPeriod);
   const year = rawYear ? parseInt(rawYear) : undefined;
 
-  // 1. Sync: fetch only new sheet rows
   const db = await getDB();
-  await syncTransactions(db, session.accessToken, id);
   await processRecurringRules(db, id);
   await classifyAll(db, id);
 
@@ -101,8 +97,13 @@ export default async function SheetPage({
     );
   });
 
-  // 5. Compute stats from filtered active transactions
-  const stats = computeStatsFromTransactions(filtered, period, localDate);
+  // 5. Compute stats from filtered active transactions (hidden categories excluded from breakdown/merchants/avg/largest)
+  const hiddenCategories = {
+    merchants: new Set(categories.filter((c) => c.hide_from_merchants).map((c) => c.name)),
+    chart:     new Set(categories.filter((c) => c.hide_from_chart).map((c) => c.name)),
+    stats:     new Set(categories.filter((c) => c.hide_from_stats).map((c) => c.name)),
+  };
+  const stats = computeStatsFromTransactions(filtered, period, localDate, hiddenCategories);
 
   // 6. Compute category totals for the pie chart
   const catMap = new Map<string, number>();

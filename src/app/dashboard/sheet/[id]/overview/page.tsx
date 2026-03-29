@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getDB, queryTransactions } from "@/lib/db";
+import { getOrCreateUserAccount } from "@/lib/user-account";
+import { ApiKeyPanel } from "@/components/api-key-panel";
 import { fetchIncomeEntries, type IncomeEntry } from "@/lib/income";
 import { processRecurringRules } from "@/lib/recurring";
 import { getCategories, classifyAll } from "@/lib/classify";
@@ -228,8 +231,7 @@ export default async function OverviewPage({
   searchParams: Promise<{ period?: string; y?: string }>;
 }) {
   const session = await auth();
-  if (!session?.accessToken) redirect("/auth/signin");
-  if (session.error === "RefreshTokenError") redirect("/auth/signin");
+  if (!session?.user?.id) redirect("/auth/signin");
 
   const [{ id }, { period: rawPeriod, y: rawYear }] = await Promise.all([params, searchParams]);
 
@@ -242,11 +244,17 @@ export default async function OverviewPage({
   await processRecurringRules(db, id);
   await classifyAll(db, id);
 
-  const [allTxns, incomeEntries, categories, goals] = await Promise.all([
+  const headersList = await headers();
+  const host  = headersList.get("host") ?? "localhost:3000";
+  const proto = host.startsWith("localhost") ? "http" : "https";
+  const baseUrl = `${proto}://${host}`;
+
+  const [allTxns, incomeEntries, categories, goals, account] = await Promise.all([
     queryTransactions(db, id),
     fetchIncomeEntries(id, period === "all" ? "all" : "year", year),
     getCategories(db, id),
     getSavingsGoals(db, id),
+    getOrCreateUserAccount(db, session.user.id!),
   ]);
 
   // Filter to period
@@ -409,6 +417,16 @@ export default async function OverviewPage({
           </CardHeader>
           <CardContent>
             <SavingsGoalsPanel goals={goals} spreadsheetId={id} />
+          </CardContent>
+        </Card>
+
+        {/* API Access */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">API Access</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ApiKeyPanel apiId={account.api_id} baseUrl={baseUrl} />
           </CardContent>
         </Card>
       </main>

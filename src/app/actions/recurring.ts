@@ -8,7 +8,7 @@ import type { IncomeType } from "@/lib/income";
 
 export async function addRecurringExpense(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const spreadsheetId = formData.get("spreadsheetId") as string;
   const merchant      = (formData.get("merchant") as string)?.trim();
@@ -44,7 +44,7 @@ export async function addRecurringExpense(formData: FormData) {
 
 export async function addRecurringIncome(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const spreadsheetId  = formData.get("spreadsheetId") as string;
   const incomeSource   = (formData.get("source") as string)?.trim();
@@ -80,7 +80,7 @@ export async function addRecurringIncome(formData: FormData) {
 
 export async function deleteRecurringRule(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const id             = parseInt(formData.get("id") as string);
   const spreadsheetId  = formData.get("spreadsheetId") as string;
@@ -100,7 +100,7 @@ export async function deleteRecurringRule(formData: FormData) {
 
 export async function editRecurringRule(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const id            = parseInt(formData.get("id") as string);
   const spreadsheetId = formData.get("spreadsheetId") as string;

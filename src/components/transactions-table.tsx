@@ -105,14 +105,14 @@ export function TransactionsTable({
                       </form>
                     ) : (
                       <>
-                        <EditTransactionButton row={row} spreadsheetId={spreadsheetId} />
+                        <EditTransactionButton row={row} spreadsheetId={spreadsheetId} categories={categories} />
                         <form action={removeTransaction}>
                           <input type="hidden" name="id" value={row.id} />
                           <input type="hidden" name="source" value={row.source} />
                           <input type="hidden" name="spreadsheetId" value={spreadsheetId} />
                           <Button type="submit" variant="ghost" size="icon"
                             className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            title={row.source === "sheet" ? "Hide from calculations" : "Delete"}>
+                            title={row.source === "api" ? "Hide from calculations" : "Delete"}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </form>

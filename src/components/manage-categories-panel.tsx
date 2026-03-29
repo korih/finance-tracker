@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Pencil, Trash2, X, Check } from "lucide-react";
+import { Pencil, Trash2, X, Check, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,59 @@ const PRESET_COLORS = [
   "#60a5fa", "#f472b6", "#facc15", "#4ade80",
 ];
 
+function ColorPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (c: string) => void;
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const isPreset = PRESET_COLORS.includes(value);
+
+  return (
+    <div className="flex gap-1 flex-wrap items-center">
+      {PRESET_COLORS.map((c) => (
+        <button
+          key={c}
+          type="button"
+          onClick={() => onChange(c)}
+          className="w-5 h-5 rounded-full border-2 transition-transform hover:scale-110"
+          style={{
+            backgroundColor: c,
+            borderColor: value === c ? "white" : "transparent",
+          }}
+        />
+      ))}
+      {/* Custom color swatch — clicking it opens the native colour wheel */}
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        className="w-5 h-5 rounded-full border-2 transition-transform hover:scale-110 relative overflow-hidden"
+        style={{
+          backgroundImage: isPreset
+            ? [
+                "radial-gradient(circle at 38% 35%, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.04) 45%, transparent 65%)",
+                "conic-gradient(hsl(0,100%,55%), hsl(45,100%,55%), hsl(90,100%,45%), hsl(135,100%,45%), hsl(180,100%,45%), hsl(225,100%,55%), hsl(270,100%,55%), hsl(315,100%,55%), hsl(360,100%,55%))",
+              ].join(", ")
+            : "none",
+          backgroundColor: isPreset ? undefined : value,
+          borderColor: !isPreset ? "white" : "transparent",
+        }}
+        title="Custom colour"
+      />
+      <input
+        ref={inputRef}
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="sr-only"
+        tabIndex={-1}
+      />
+    </div>
+  );
+}
+
 interface Props {
   categories: Category[];
   spreadsheetId: string;
@@ -27,19 +80,22 @@ interface EditState {
   name: string;
   color: string;
   patterns: string;
+  hide_from_merchants: boolean;
+  hide_from_chart: boolean;
+  hide_from_stats: boolean;
 }
 
 export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
   const [editingId, setEditingId]   = React.useState<number | null>(null);
-  const [editState, setEditState]   = React.useState<EditState>({ name: "", color: "", patterns: "" });
+  const [editState, setEditState]   = React.useState<EditState>({ name: "", color: "", patterns: "", hide_from_merchants: false, hide_from_chart: false, hide_from_stats: false });
   const [adding, setAdding]         = React.useState(false);
-  const [newState, setNewState]     = React.useState<EditState>({ name: "", color: PRESET_COLORS[0], patterns: "" });
+  const [newState, setNewState]     = React.useState<EditState>({ name: "", color: PRESET_COLORS[0], patterns: "", hide_from_merchants: false, hide_from_chart: false, hide_from_stats: false });
   const [pending, setPending]       = React.useState(false);
   const [error, setError]           = React.useState<string | null>(null);
 
   function startEdit(cat: Category) {
     setEditingId(cat.id);
-    setEditState({ name: cat.name, color: cat.color, patterns: cat.patterns.join(", ") });
+    setEditState({ name: cat.name, color: cat.color, patterns: cat.patterns.join(", "), hidden: cat.hidden });
     setError(null);
   }
 
@@ -58,6 +114,7 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
       fd.set("name", editState.name.trim() || cat.name);
       fd.set("color", editState.color);
       fd.set("patterns", editState.patterns);
+      fd.set("hidden", editState.hidden ? "1" : "0");
       await editCategoryPatterns(fd);
       setEditingId(null);
     } catch (e) {
@@ -94,7 +151,7 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
       fd.set("patterns", newState.patterns);
       await addCategory(fd);
       setAdding(false);
-      setNewState({ name: "", color: PRESET_COLORS[0], patterns: "" });
+      setNewState({ name: "", color: PRESET_COLORS[0], patterns: "", hidden: false });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add");
     } finally {
@@ -103,15 +160,16 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
   }
 
   return (
-    <div className="space-y-3">
-      {/* Existing categories */}
-      {categories.length === 0 && !adding && (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          No categories yet. Add one to start classifying transactions.
-        </p>
-      )}
+    <div className="flex flex-col gap-3">
+      {/* Scrollable category list */}
+      <div className="overflow-y-auto max-h-[280px] space-y-2 pr-1">
+        {categories.length === 0 && !adding && (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No categories yet. Add one to start classifying transactions.
+          </p>
+        )}
 
-      {categories.map((cat) =>
+        {categories.map((cat) =>
         editingId === cat.id ? (
           /* Edit row */
           <div key={cat.id} className="rounded-lg border p-3 space-y-3">
@@ -126,20 +184,10 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Color</Label>
-                <div className="flex gap-1 flex-wrap">
-                  {PRESET_COLORS.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setEditState((s) => ({ ...s, color: c }))}
-                      className="w-5 h-5 rounded-full border-2 transition-transform hover:scale-110"
-                      style={{
-                        backgroundColor: c,
-                        borderColor: editState.color === c ? "white" : "transparent",
-                      }}
-                    />
-                  ))}
-                </div>
+                <ColorPicker
+                  value={editState.color}
+                  onChange={(c) => setEditState((s) => ({ ...s, color: c }))}
+                />
               </div>
             </div>
             <div className="space-y-1">
@@ -154,6 +202,18 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
                 Each pattern is a regex tested against the merchant name (case-insensitive).
               </p>
             </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={editState.hidden}
+                onChange={(e) => setEditState((s) => ({ ...s, hidden: e.target.checked }))}
+                className="h-4 w-4 rounded border-input accent-primary"
+              />
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <EyeOff className="h-3 w-3" />
+                Hide from top merchants, spending chart &amp; avg/largest stats
+              </span>
+            </label>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="ghost" size="sm" onClick={cancelEdit} disabled={pending}>
@@ -169,6 +229,11 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
           <div key={cat.id} className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
             <div className="flex items-center gap-2 min-w-0">
               <CategoryBadge name={cat.name} color={cat.color} />
+              {cat.hidden && (
+                <span title="Hidden from stats">
+                  <EyeOff className="h-3 w-3 text-muted-foreground shrink-0" />
+                </span>
+              )}
               {cat.patterns.length > 0 ? (
                 <span className="text-xs text-muted-foreground truncate">
                   {cat.patterns.slice(0, 3).join(", ")}
@@ -199,8 +264,9 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
           </div>
         )
       )}
+      </div>
 
-      {/* Add new category */}
+      {/* Add new category — outside scroll area */}
       {adding ? (
         <div className="rounded-lg border p-3 space-y-3">
           <div className="grid grid-cols-2 gap-2">
@@ -216,20 +282,10 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Color</Label>
-              <div className="flex gap-1 flex-wrap">
-                {PRESET_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setNewState((s) => ({ ...s, color: c }))}
-                    className="w-5 h-5 rounded-full border-2 transition-transform hover:scale-110"
-                    style={{
-                      backgroundColor: c,
-                      borderColor: newState.color === c ? "white" : "transparent",
-                    }}
-                  />
-                ))}
-              </div>
+              <ColorPicker
+                value={newState.color}
+                onChange={(c) => setNewState((s) => ({ ...s, color: c }))}
+              />
             </div>
           </div>
           <div className="space-y-1">

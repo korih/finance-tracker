@@ -11,7 +11,7 @@ export interface TransactionRow {
   inserted_at: string;
   spreadsheet_id: string;
   row_index: number | null; // NULL for manually entered transactions
-  source: "sheet" | "manual" | "recurring";
+  source: "api" | "manual" | "recurring";
   excluded: number; // 0 = active, 1 = soft-deleted
   recurring_rule_id: number | null;
   category: string | null;
@@ -157,7 +157,7 @@ export async function softDeleteTransaction(
   id: number
 ): Promise<void> {
   await db
-    .prepare(`UPDATE transactions SET excluded = 1 WHERE id = ? AND source IN ('sheet', 'recurring')`)
+    .prepare(`UPDATE transactions SET excluded = 1 WHERE id = ? AND source IN ('api', 'recurring')`)
     .bind(id)
     .run();
 }
@@ -168,7 +168,7 @@ export async function restoreTransaction(
   id: number
 ): Promise<void> {
   await db
-    .prepare(`UPDATE transactions SET excluded = 0 WHERE id = ? AND source = 'sheet'`)
+    .prepare(`UPDATE transactions SET excluded = 0 WHERE id = ? AND source = 'api'`)
     .bind(id)
     .run();
 }

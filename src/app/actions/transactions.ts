@@ -11,7 +11,7 @@ import {
 
 export async function addTransaction(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const spreadsheetId = formData.get("spreadsheetId") as string;
   const merchant = (formData.get("merchant") as string)?.trim();
@@ -38,7 +38,7 @@ export async function addTransaction(formData: FormData) {
 
 export async function removeTransaction(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const id = parseInt(formData.get("id") as string);
   const source = formData.get("source") as string;
@@ -60,7 +60,7 @@ export async function removeTransaction(formData: FormData) {
 
 export async function updateTransaction(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const id = parseInt(formData.get("id") as string);
   const spreadsheetId = formData.get("spreadsheetId") as string;
@@ -68,18 +68,55 @@ export async function updateTransaction(formData: FormData) {
   const amount = parseFloat(formData.get("amount") as string);
   const timestamp = formData.get("timestamp") as string;
   const card = (formData.get("card") as string)?.trim();
+  // category: empty string = clear, non-empty = set, absent = leave unchanged
+  const categoryRaw = formData.get("category");
+  const category = categoryRaw === null ? undefined : (categoryRaw as string).trim() || null;
 
   if (isNaN(id) || !spreadsheetId || !merchant || isNaN(amount) || amount <= 0 || !timestamp || !card) {
     throw new Error("Invalid input");
   }
 
   const db = await getDB();
+
+  if (category !== undefined) {
+    await db
+      .prepare(
+        `UPDATE transactions SET merchant = ?, amount = ?, timestamp = ?, card = ?, category = ?
+         WHERE id = ? AND spreadsheet_id = ?`
+      )
+      .bind(merchant, amount, timestamp, card, category, id, spreadsheetId)
+      .run();
+  } else {
+    await db
+      .prepare(
+        `UPDATE transactions SET merchant = ?, amount = ?, timestamp = ?, card = ?
+         WHERE id = ? AND spreadsheet_id = ?`
+      )
+      .bind(merchant, amount, timestamp, card, id, spreadsheetId)
+      .run();
+  }
+
+  revalidatePath(`/dashboard/sheet/${spreadsheetId}/expenses`);
+}
+
+/** Set category on all non-excluded transactions with the same merchant. */
+export async function applyMerchantCategory(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Unauthorized");
+
+  const spreadsheetId = formData.get("spreadsheetId") as string;
+  const merchant = (formData.get("merchant") as string)?.trim();
+  const category = (formData.get("category") as string)?.trim() || null;
+
+  if (!spreadsheetId || !merchant) throw new Error("Invalid input");
+
+  const db = await getDB();
   await db
     .prepare(
-      `UPDATE transactions SET merchant = ?, amount = ?, timestamp = ?, card = ?
-       WHERE id = ? AND spreadsheet_id = ?`
+      `UPDATE transactions SET category = ?
+       WHERE spreadsheet_id = ? AND merchant = ? AND excluded = 0`
     )
-    .bind(merchant, amount, timestamp, card, id, spreadsheetId)
+    .bind(category, spreadsheetId, merchant)
     .run();
 
   revalidatePath(`/dashboard/sheet/${spreadsheetId}/expenses`);
@@ -87,7 +124,7 @@ export async function updateTransaction(formData: FormData) {
 
 export async function unexcludeTransaction(formData: FormData) {
   const session = await auth();
-  if (!session?.accessToken) throw new Error("Unauthorized");
+  if (!session?.user?.id) throw new Error("Unauthorized");
 
   const id = parseInt(formData.get("id") as string);
   const spreadsheetId = formData.get("spreadsheetId") as string;
