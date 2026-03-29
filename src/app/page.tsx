@@ -31,7 +31,7 @@ export default async function Home() {
     <div className="flex flex-col min-h-screen">
       {/* Nav */}
       <header className="px-6 py-5 flex items-center">
-        <span className="font-bold text-lg tracking-tight text-primary">
+        <span className="font-semibold text-lg tracking-tight text-foreground">
           Finance Tracker
         </span>
       </header>

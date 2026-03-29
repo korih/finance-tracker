@@ -37,12 +37,12 @@ export function IncomeChart({ data }: { data: IncomeBreakdownEntry[] }) {
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-        <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+        <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#4e4d58" }} tickLine={false} axisLine={false} />
         <YAxis
           tickFormatter={(v: number) =>
             `$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`
           }
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: "#4e4d58" }}
           tickLine={false}
           axisLine={false}
           width={52}
@@ -54,10 +54,10 @@ export function IncomeChart({ data }: { data: IncomeBreakdownEntry[] }) {
               key={i}
               fill={
                 entry.isCurrent
-                  ? "#4BAF82"
+                  ? "#a78bfa"   /* --accent purple */
                   : entry.total === max && max > 0
-                    ? "#7DCAAA"
-                    : "#B8E4D2"
+                    ? "#7c3aed"
+                    : "#4c1d95"
               }
             />
           ))}

@@ -22,7 +22,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <header className="border-b px-6 py-4 flex items-center justify-between bg-background/80 backdrop-blur-sm sticky top-0 z-10">
-        <span className="font-bold text-primary">Finance Tracker</span>
+        <span className="font-semibold text-foreground">Finance Tracker</span>
         <div className="flex items-center gap-4">
           <span className="text-sm text-muted-foreground">
             {session.user?.email}

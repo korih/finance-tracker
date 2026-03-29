@@ -23,7 +23,7 @@ export function CardBreakdown({ data, accent = "red" }: { data: SpendingStats["b
           <div className="h-2 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full"
-              style={{ width: `${entry.pct}%`, background: accent === "red" ? "#E05252" : "#4BAF82" }}
+              style={{ width: `${entry.pct}%`, background: accent === "red" ? "rgba(239,68,68,0.6)" : "rgba(167,139,250,0.6)" }}
             />
           </div>
         </div>

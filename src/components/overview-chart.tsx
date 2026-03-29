@@ -45,13 +45,13 @@ export function OverviewChart({ data }: { data: OverviewDataPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={280}>
       <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-        <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
+        <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#4e4d58" }} tickLine={false} axisLine={false} />
         <YAxis
           tickFormatter={(v: number) =>
             `$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`
           }
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: "#4e4d58" }}
           tickLine={false}
           axisLine={false}
           width={52}
@@ -61,20 +61,21 @@ export function OverviewChart({ data }: { data: OverviewDataPoint[] }) {
           formatter={(value) => value.charAt(0).toUpperCase() + value.slice(1)}
           iconType="circle"
           iconSize={8}
+          wrapperStyle={{ color: "#4e4d58", fontSize: 12 }}
         />
         <Line
           type="monotone"
           dataKey="income"
-          stroke="#4BAF82"
-          strokeWidth={2}
+          stroke="#a78bfa"  /* --accent (purple) */
+          strokeWidth={2.5}
           dot={false}
           activeDot={{ r: 4 }}
         />
         <Line
           type="monotone"
           dataKey="expenses"
-          stroke="#E05252"
-          strokeWidth={2}
+          stroke="#ef4444"  /* --accent3 (pink) */
+          strokeWidth={2.5}
           dot={false}
           activeDot={{ r: 4 }}
         />

@@ -50,9 +50,10 @@ export function MerchantsChart({
     );
   }
 
+  // Colors match Vault design tokens: --accent3 (pink) for expenses, --accent (purple) for income
   const colors = accent === "red"
-    ? { top: "#E05252", mid: "#E87A7A", rest: "#F5C4C4" }
-    : { top: "#4BAF82", mid: "#6CC49A", rest: "#B8E4D2" };
+    ? { top: "#ef4444", mid: "#dc2626", rest: "#7f1d1d" }   /* --accent3 pink */
+    : { top: "#a78bfa", mid: "#7c3aed", rest: "#4c1d95" };  /* --accent purple */
 
   return (
     <ResponsiveContainer width="100%" height={Math.max(180, data.length * 36)}>
@@ -64,7 +65,7 @@ export function MerchantsChart({
         <XAxis
           type="number"
           tickFormatter={(v: number) => `$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`}
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: "#4e4d58" }}
           tickLine={false}
           axisLine={false}
         />
@@ -72,7 +73,7 @@ export function MerchantsChart({
           type="category"
           dataKey="merchant"
           width={110}
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: "#4e4d58" }}
           tickLine={false}
           axisLine={false}
         />

@@ -67,7 +67,7 @@ export default async function IncomePage({
     <div className="flex flex-1 flex-col min-h-screen">
       {/* Header */}
       <header className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-sm z-10">
-        <span className="font-bold text-primary">Finance Tracker</span>
+        <span className="font-semibold text-foreground">Finance Tracker</span>
         <div className="flex items-center gap-4">
           <span className="text-sm text-muted-foreground hidden sm:block">
             {session.user?.email}

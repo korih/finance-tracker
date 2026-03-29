@@ -127,7 +127,7 @@ export default async function OverviewPage({
   return (
     <div className="flex flex-1 flex-col min-h-screen">
       <header className="border-b px-6 py-4 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-sm z-10">
-        <span className="font-bold text-primary">Finance Tracker</span>
+        <span className="font-semibold text-foreground">Finance Tracker</span>
         <div className="flex items-center gap-4">
           <span className="text-sm text-muted-foreground hidden sm:block">
             {session.user?.email}
@@ -159,7 +159,7 @@ export default async function OverviewPage({
 
         {/* Stat cards */}
         <div className="grid grid-cols-3 gap-4">
-          <StatCard label={`Income · ${periodLabel}`} value={fmt(totalIncome)} color="green" />
+          <StatCard label={`Income · ${periodLabel}`} value={fmt(totalIncome)} color="purple" />
           <StatCard label={`Expenses · ${periodLabel}`} value={fmt(totalExpenses)} color="red" />
           <StatCard
             label={`Net · ${periodLabel}`}

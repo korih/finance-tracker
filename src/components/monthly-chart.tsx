@@ -51,16 +51,17 @@ export function MonthlyChart({
   }
 
   const max = Math.max(...data.map((d) => d.total));
+  // Colors match Vault design tokens: --accent3 (pink) for expenses, --accent (purple) for income
   const colors = accent === "red"
-    ? { current: "#E05252", high: "#E87A7A", base: "#F5C4C4" }
-    : { current: "#4BAF82", high: "#7DCAAA", base: "#B8E4D2" };
+    ? { current: "#ef4444", high: "#dc2626", base: "#7f1d1d" }   /* --accent3 pink */
+    : { current: "#a78bfa", high: "#7c3aed", base: "#4c1d95" };  /* --accent purple */
 
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 12 }}
+          tick={{ fontSize: 12, fill: "#4e4d58" }}
           tickLine={false}
           axisLine={false}
         />
@@ -68,7 +69,7 @@ export function MonthlyChart({
           tickFormatter={(v: number) =>
             `$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v}`
           }
-          tick={{ fontSize: 11 }}
+          tick={{ fontSize: 11, fill: "#4e4d58" }}
           tickLine={false}
           axisLine={false}
           width={52}
