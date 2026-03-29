@@ -1,5 +1,3 @@
-import type { SheetData } from "./google-sheets";
-
 export type Period = "day" | "week" | "month" | "year" | "all";
 
 export interface Transaction {
@@ -28,47 +26,6 @@ export interface SpendingStats {
   byCard: { card: string; total: number; pct: number }[];
   recentTransactions: Transaction[];
   dateRange: { from: string; to: string } | null;
-}
-
-function parseAmount(raw: string): number {
-  const cleaned = raw.replace(/[$,\s]/g, "");
-  const n = parseFloat(cleaned);
-  return isNaN(n) ? 0 : n;
-}
-
-function findColIndex(headers: string[], ...names: string[]): number {
-  return headers.findIndex((h) =>
-    names.some((n) => h.trim().toLowerCase().includes(n.toLowerCase()))
-  );
-}
-
-/** Parse raw sheet rows into typed transactions, filtering out invalid/zero-amount rows. */
-export function parseSheetToTransactions(data: SheetData): Transaction[] {
-  const { headers, rows } = data;
-
-  const iTimestamp = findColIndex(headers, "timestamp", "date", "time");
-  const iMerchant = findColIndex(headers, "merchant", "vendor", "store");
-  const iName = findColIndex(headers, "name");
-  const iAmount = findColIndex(headers, "amount", "total", "price", "cost");
-  const iCard = findColIndex(headers, "card", "account", "payment");
-
-  const transactions: Transaction[] = [];
-
-  for (const row of rows) {
-    const amountRaw = iAmount >= 0 ? (row[iAmount] ?? "") : "";
-    const amount = parseAmount(amountRaw);
-    if (amount <= 0) continue;
-
-    transactions.push({
-      timestamp: iTimestamp >= 0 ? (row[iTimestamp] ?? "") : "",
-      merchant: iMerchant >= 0 ? (row[iMerchant] ?? "Unknown") : "Unknown",
-      name: iName >= 0 ? (row[iName] ?? "") : "",
-      amount,
-      card: iCard >= 0 ? (row[iCard] ?? "Unknown") : "Unknown",
-    });
-  }
-
-  return transactions;
 }
 
 // ─── Breakdown helpers ────────────────────────────────────────────────────────
@@ -331,7 +288,3 @@ export function computeStatsFromTransactions(
   };
 }
 
-/** Convenience wrapper: parse sheet data then compute stats. */
-export function computeStats(data: SheetData): SpendingStats {
-  return computeStatsFromTransactions(parseSheetToTransactions(data));
-}

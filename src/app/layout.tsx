@@ -19,7 +19,7 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   title: "Finance Tracker",
-  description: "Visualize your finances from Google Sheets",
+  description: "Track expenses, income, and savings goals with rich analytics.",
 };
 
 export default function RootLayout({

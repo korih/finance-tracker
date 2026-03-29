@@ -1,8 +1,49 @@
+export type Subscription = "free" | "premium";
+
+export const FREE_ENTRY_LIMIT = 200;
+
 export interface UserAccount {
   user_id: string;
   api_id: string;
   spreadsheet_id: string;
+  subscription: Subscription;
   inserted_at: string;
+}
+
+/**
+ * Returns the combined count of transactions + income_entries for a spreadsheet.
+ * Used to enforce the free-tier limit.
+ */
+export async function getEntryCount(
+  db: D1Database,
+  spreadsheetId: string
+): Promise<number> {
+  const row = await db
+    .prepare(
+      `SELECT
+         (SELECT COUNT(*) FROM transactions   WHERE spreadsheet_id = ? AND excluded = 0) +
+         (SELECT COUNT(*) FROM income_entries WHERE spreadsheet_id = ?)
+       AS total`
+    )
+    .bind(spreadsheetId, spreadsheetId)
+    .first<{ total: number }>();
+  return row?.total ?? 0;
+}
+
+/**
+ * Throws if a free-tier account has reached the entry limit.
+ */
+export async function assertBelowEntryLimit(
+  db: D1Database,
+  account: UserAccount
+): Promise<void> {
+  if (account.subscription === "premium") return;
+  const count = await getEntryCount(db, account.spreadsheet_id);
+  if (count >= FREE_ENTRY_LIMIT) {
+    throw new Error(
+      `Free plan limit reached (${FREE_ENTRY_LIMIT} entries). Upgrade to premium for unlimited entries.`
+    );
+  }
 }
 
 /**
@@ -72,6 +113,7 @@ export async function getOrCreateUserAccount(
     user_id:        userId,
     api_id:         apiId,
     spreadsheet_id: spreadsheetId,
+    subscription:   "free",
     inserted_at:    new Date().toISOString(),
   };
 }

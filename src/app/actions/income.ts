@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { insertIncomeEntry, deleteIncomeEntry, type IncomeType } from "@/lib/income";
 import { getDB } from "@/lib/db";
+import { getOrCreateUserAccount, assertBelowEntryLimit } from "@/lib/user-account";
 
 export async function addIncomeEntry(formData: FormData) {
   const session = await auth();
@@ -18,6 +19,10 @@ export async function addIncomeEntry(formData: FormData) {
   if (!spreadsheetId || !source || isNaN(amount) || amount <= 0 || !date) {
     throw new Error("Invalid input");
   }
+
+  const db = await getDB();
+  const account = await getOrCreateUserAccount(db, session.user.id);
+  await assertBelowEntryLimit(db, account);
 
   await insertIncomeEntry({ spreadsheetId, source, type, amount, date });
 

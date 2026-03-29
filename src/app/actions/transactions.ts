@@ -8,6 +8,7 @@ import {
   softDeleteTransaction,
   restoreTransaction,
 } from "@/lib/db";
+import { getOrCreateUserAccount, assertBelowEntryLimit } from "@/lib/user-account";
 
 export async function addTransaction(formData: FormData) {
   const session = await auth();
@@ -24,6 +25,9 @@ export async function addTransaction(formData: FormData) {
   }
 
   const db = await getDB();
+  const account = await getOrCreateUserAccount(db, session.user.id);
+  await assertBelowEntryLimit(db, account);
+
   await db
     .prepare(
       `INSERT INTO transactions

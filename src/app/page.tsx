@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { SignInButton } from "@/components/sign-in-button";
@@ -11,15 +12,15 @@ const features = [
   },
   {
     icon: "📅",
-    title: "Monthly Trends",
+    title: "Trends & Categories",
     description:
-      "Visualize your spending month over month to spot patterns instantly.",
+      "Visualize spending over time and automatically classify transactions into categories.",
   },
   {
     icon: "💳",
-    title: "Card Breakdown",
+    title: "Income & Savings",
     description:
-      "See exactly how much you're spending on each card at a glance.",
+      "Track income sources, recurring rules, and savings goals alongside your expenses.",
   },
 ];
 
@@ -38,28 +39,18 @@ export default async function Home() {
 
       {/* Hero */}
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-20 text-center gap-10">
-        {/* Badge */}
-        <span className="text-xs font-medium px-3 py-1 rounded-full bg-primary/15 text-primary border border-primary/25">
-          Powered by Google Sheets
-        </span>
-
         <div className="space-y-5 max-w-xl">
           <h1 className="text-5xl sm:text-6xl font-bold tracking-tight leading-tight">
             Know where your{" "}
             <span className="text-primary">money goes.</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Connect your Google Sheet and get instant spending analytics — no
-            imports, no new tools, no hassle.
+            Track expenses, income, and savings goals — with automatic
+            categorisation and rich analytics.
           </p>
         </div>
 
-        <div className="flex flex-col items-center gap-3">
-          <SignInButton />
-          <p className="text-xs text-muted-foreground">
-            Read-only access · Nothing is stored
-          </p>
-        </div>
+        <SignInButton />
       </main>
 
       {/* Features */}
@@ -82,8 +73,10 @@ export default async function Home() {
         </div>
       </section>
 
-      <footer className="border-t px-6 py-5 text-center text-xs text-muted-foreground">
-        Finance Tracker — personal use
+      <footer className="border-t px-6 py-5 text-center text-xs text-muted-foreground space-x-4">
+        <span>Finance Tracker</span>
+        <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
+        <Link href="/terms" className="hover:underline">Terms of Service</Link>
       </footer>
     </div>
   );

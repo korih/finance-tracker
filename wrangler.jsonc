@@ -1,21 +1,29 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "finance-tracker",
-  "main": ".open-next/worker.js",
-  "compatibility_date": "2025-05-05",
-  "compatibility_flags": ["nodejs_compat"],
-  "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "finance-tracker-db",
-      "database_id": "54f078e8-2bb3-4c26-b29a-eb1966eaba30"
-    }
-  ],
-  "ai": {
-    "binding": "AI"
-  }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "finance-tracker",
+	"main": ".open-next/worker.js",
+	"compatibility_date": "2025-05-05",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "finance-tracker-db",
+			"database_id": "54f078e8-2bb3-4c26-b29a-eb1966eaba30"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "RATE_LIMIT_KV",
+			"id": "e12b04868cee42bc92cb61721afeffcb"
+		}
+	],
+	"ai": {
+		"binding": "AI"
+	}
 }
