@@ -20,15 +20,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/auth/signin",
   },
   callbacks: {
-    async jwt({ token, account }) {
-      if (account) {
-        return { ...token };
+    async jwt({ token, account, profile }) {
+      // On first sign-in, pin the stable Google sub onto the token so it
+      // never changes across sign-out / sign-in cycles.
+      if (account?.providerAccountId) {
+        token.sub = account.providerAccountId;
+      } else if (!token.sub && (profile as { sub?: string })?.sub) {
+        token.sub = (profile as { sub?: string }).sub;
       }
       return token;
     },
 
     async session({ session, token }) {
-      // Expose the Google sub as session.user.id
       if (token.sub) session.user.id = token.sub;
       return session;
     },

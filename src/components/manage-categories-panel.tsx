@@ -95,7 +95,14 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
 
   function startEdit(cat: Category) {
     setEditingId(cat.id);
-    setEditState({ name: cat.name, color: cat.color, patterns: cat.patterns.join(", "), hidden: cat.hidden });
+    setEditState({
+      name: cat.name,
+      color: cat.color,
+      patterns: cat.patterns.join(", "),
+      hide_from_merchants: cat.hide_from_merchants,
+      hide_from_chart:     cat.hide_from_chart,
+      hide_from_stats:     cat.hide_from_stats,
+    });
     setError(null);
   }
 
@@ -114,7 +121,9 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
       fd.set("name", editState.name.trim() || cat.name);
       fd.set("color", editState.color);
       fd.set("patterns", editState.patterns);
-      fd.set("hidden", editState.hidden ? "1" : "0");
+      fd.set("hide_from_merchants", editState.hide_from_merchants ? "1" : "0");
+      fd.set("hide_from_chart",     editState.hide_from_chart     ? "1" : "0");
+      fd.set("hide_from_stats",     editState.hide_from_stats     ? "1" : "0");
       await editCategoryPatterns(fd);
       setEditingId(null);
     } catch (e) {
@@ -151,7 +160,7 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
       fd.set("patterns", newState.patterns);
       await addCategory(fd);
       setAdding(false);
-      setNewState({ name: "", color: PRESET_COLORS[0], patterns: "", hidden: false });
+      setNewState({ name: "", color: PRESET_COLORS[0], patterns: "", hide_from_merchants: false, hide_from_chart: false, hide_from_stats: false });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add");
     } finally {
@@ -202,18 +211,30 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
                 Each pattern is a regex tested against the merchant name (case-insensitive).
               </p>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={editState.hidden}
-                onChange={(e) => setEditState((s) => ({ ...s, hidden: e.target.checked }))}
-                className="h-4 w-4 rounded border-input accent-primary"
-              />
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <EyeOff className="h-3 w-3" />
-                Hide from top merchants, spending chart &amp; avg/largest stats
-              </span>
-            </label>
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <EyeOff className="h-3 w-3" /> Exclude from
+              </p>
+              {(
+                [
+                  ["hide_from_merchants", "Top merchants chart"] ,
+                  ["hide_from_chart",     "Spending breakdown chart"],
+                  ["hide_from_stats",     "Avg &amp; largest transaction"],
+                ] as const
+              ).map(([field, label]) => (
+                <label key={field} className="flex items-center gap-2 cursor-pointer select-none pl-1">
+                  <input
+                    type="checkbox"
+                    checked={editState[field]}
+                    onChange={(e) => setEditState((s) => ({ ...s, [field]: e.target.checked }))}
+                    className="h-3.5 w-3.5 rounded border-input accent-primary"
+                  />
+                  <span className="text-xs text-muted-foreground"
+                    dangerouslySetInnerHTML={{ __html: label }}
+                  />
+                </label>
+              ))}
+            </div>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="ghost" size="sm" onClick={cancelEdit} disabled={pending}>
@@ -229,8 +250,8 @@ export function ManageCategoriesPanel({ categories, spreadsheetId }: Props) {
           <div key={cat.id} className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
             <div className="flex items-center gap-2 min-w-0">
               <CategoryBadge name={cat.name} color={cat.color} />
-              {cat.hidden && (
-                <span title="Hidden from stats">
+              {(cat.hide_from_merchants || cat.hide_from_chart || cat.hide_from_stats) && (
+                <span title="Excluded from some stats">
                   <EyeOff className="h-3 w-3 text-muted-foreground shrink-0" />
                 </span>
               )}
