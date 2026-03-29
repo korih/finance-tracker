@@ -18,6 +18,7 @@ export interface IncomeEntry {
   date: string; // YYYY-MM-DD
   recurring_rule_id: number | null;
   inserted_at: string;
+  category: string | null;
 }
 
 export interface IncomeBreakdownEntry {

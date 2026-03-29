@@ -6,8 +6,12 @@ import {
   queryTransactions,
   queryAllTransactions,
   getDistinctCards,
+  getDistinctMerchants,
 } from "@/lib/db";
 import { getRecurringRules, processRecurringRules } from "@/lib/recurring";
+import { getCategories, classifyAll } from "@/lib/classify";
+import { ManageCategoriesPanel } from "@/components/manage-categories-panel";
+import { CategoryPieChart } from "@/components/category-pie-chart";
 import {
   computeStatsFromTransactions,
   filterTransactionsByPeriod,
@@ -68,13 +72,16 @@ export default async function SheetPage({
   const db = await getDB();
   await syncTransactions(db, session.accessToken, id);
   await processRecurringRules(db, id);
+  await classifyAll(db, id);
 
   // 2. Fetch data
-  const [activeTransactions, allTransactions, cards, recurringRules] = await Promise.all([
+  const [activeTransactions, allTransactions, cards, merchants, recurringRules, categories] = await Promise.all([
     queryTransactions(db, id),                    // non-excluded, for stats
     queryAllTransactions(db, id),                 // all rows including excluded, for table
     getDistinctCards(db, id),                     // for the add-expense card dropdown
+    getDistinctMerchants(db, id),                 // for merchant autocomplete
     getRecurringRules(db, id, "expense"),          // for the recurring panel
+    getCategories(db, id),                        // for category badges + manage panel
   ]);
 
   // 3. Filter active transactions to the selected period for stats
@@ -96,6 +103,24 @@ export default async function SheetPage({
 
   // 5. Compute stats from filtered active transactions
   const stats = computeStatsFromTransactions(filtered, period, localDate);
+
+  // 6. Compute category totals for the pie chart
+  const catMap = new Map<string, number>();
+  for (const t of filtered) {
+    if (t.category) catMap.set(t.category, (catMap.get(t.category) ?? 0) + t.amount);
+  }
+  const grandCatTotal = Array.from(catMap.values()).reduce((s, v) => s + v, 0);
+  const categoryTotals = Array.from(catMap.entries())
+    .map(([name, total]) => {
+      const cat = categories.find((c) => c.name === name);
+      return {
+        name,
+        color: cat?.color ?? "#8b8a96",
+        total: Math.round(total * 100) / 100,
+        pct: grandCatTotal > 0 ? Math.round((total / grandCatTotal) * 100) : 0,
+      };
+    })
+    .sort((a, b) => b.total - a.total);
 
   const periodLabel = getPeriodLabel(period, year);
 
@@ -125,7 +150,7 @@ export default async function SheetPage({
                 {stats.transactionCount} transactions
               </p>
             )}
-            <AddTransactionDialog spreadsheetId={id} existingCards={cards} />
+            <AddTransactionDialog spreadsheetId={id} existingCards={cards} existingMerchants={merchants} />
           </div>
         </div>
 
@@ -171,7 +196,7 @@ export default async function SheetPage({
           </Card>
         </div>
 
-        {/* Bottom row: Spending by Card + Recurring Expenses */}
+        {/* Bottom row: 2×2 grid */}
         <div className="grid lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader className="pb-2">
@@ -190,6 +215,24 @@ export default async function SheetPage({
               <RecurringPanel rules={recurringRules} spreadsheetId={id} />
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Spending by Category · {periodLabel}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CategoryPieChart data={categoryTotals} />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Categories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ManageCategoriesPanel categories={categories} spreadsheetId={id} />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Full-width Recent Transactions */}
@@ -199,7 +242,7 @@ export default async function SheetPage({
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-[420px] overflow-y-auto">
-              <TransactionsTable rows={tableRows} spreadsheetId={id} />
+              <TransactionsTable rows={tableRows} spreadsheetId={id} categories={categories} />
             </div>
           </CardContent>
         </Card>

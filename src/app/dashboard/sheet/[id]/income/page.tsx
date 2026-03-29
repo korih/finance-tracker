@@ -6,8 +6,9 @@ import {
   computeIncomeStats,
   type IncomePeriod,
 } from "@/lib/income";
-import { getDB } from "@/lib/db";
+import { getDB, getDistinctSources } from "@/lib/db";
 import { getRecurringRules, processRecurringRules } from "@/lib/recurring";
+import { classifyAll } from "@/lib/classify";
 import { StatCard } from "@/components/stat-card";
 import { IncomeChart } from "@/components/income-chart";
 import { RecurringIncomePanel } from "@/components/recurring-income-panel";
@@ -49,10 +50,12 @@ export default async function IncomePage({
 
   const db = await getDB();
   await processRecurringRules(db, id);
+  await classifyAll(db, id);
 
-  const [entries, recurringRules] = await Promise.all([
+  const [entries, recurringRules, sources] = await Promise.all([
     fetchIncomeEntries(id, period, year),
     getRecurringRules(db, id, "income"),
+    getDistinctSources(db, id),
   ]);
 
   const stats = computeIncomeStats(entries, period, year);
@@ -98,7 +101,7 @@ export default async function IncomePage({
               </Link>
             ))}
           </div>
-          <AddIncomeDialog spreadsheetId={id} />
+          <AddIncomeDialog spreadsheetId={id} existingSources={sources} />
         </div>
 
         {/* Stat cards */}
@@ -138,6 +141,7 @@ export default async function IncomePage({
               <RecurringIncomePanel rules={recurringRules} spreadsheetId={id} />
             </CardContent>
           </Card>
+
         </div>
 
         {/* By type breakdown */}

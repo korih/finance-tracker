@@ -20,6 +20,7 @@ import { addIncomeEntry } from "@/app/actions/income";
 import { addRecurringIncome } from "@/app/actions/recurring";
 import type { IncomeType } from "@/lib/income";
 import { INCOME_TYPE_LABELS } from "@/lib/income";
+import { NameInput } from "@/components/name-input";
 
 type RecurrenceType = "daily" | "weekly" | "monthly" | "custom";
 
@@ -30,7 +31,7 @@ const RECURRENCE_OPTIONS: { value: RecurrenceType; label: string }[] = [
   { value: "custom",  label: "Custom…" },
 ];
 
-export function AddIncomeDialog({ spreadsheetId }: { spreadsheetId: string }) {
+export function AddIncomeDialog({ spreadsheetId, existingSources }: { spreadsheetId: string; existingSources: string[] }) {
   const [open, setOpen]                   = React.useState(false);
   const [date, setDate]                   = React.useState<Date>(new Date());
   const [calOpen, setCalOpen]             = React.useState(false);
@@ -91,12 +92,12 @@ export function AddIncomeDialog({ spreadsheetId }: { spreadsheetId: string }) {
           {/* Source */}
           <div className="space-y-1.5">
             <Label htmlFor="source">Source</Label>
-            <Input
+            <NameInput
               id="source"
               name="source"
               placeholder="e.g. Acme Corp, Savings Account"
               required
-              autoComplete="off"
+              suggestions={existingSources}
             />
           </div>
 

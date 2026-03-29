@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import type { TransactionRow } from "@/lib/db";
 import { removeTransaction, unexcludeTransaction } from "@/app/actions/transactions";
 import { EditTransactionButton } from "@/components/edit-transaction-button";
+import { CategoryBadge } from "@/components/category-badge";
+import type { Category } from "@/lib/classify";
 
 function formatDate(raw: string) {
   // ISO dates (YYYY-MM-DD) are parsed as UTC midnight; append T12:00:00 so
@@ -24,9 +26,11 @@ function formatDate(raw: string) {
 export function TransactionsTable({
   rows,
   spreadsheetId,
+  categories = [],
 }: {
   rows: TransactionRow[];
   spreadsheetId: string;
+  categories?: Category[];
 }) {
   if (rows.length === 0) {
     return (
@@ -43,6 +47,7 @@ export function TransactionsTable({
           <TableRow>
             <TableHead>Date</TableHead>
             <TableHead>Merchant</TableHead>
+            <TableHead>Category</TableHead>
             <TableHead>Card</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="w-20" />
@@ -70,6 +75,14 @@ export function TransactionsTable({
                   }
                 >
                   {row.merchant}
+                </TableCell>
+                <TableCell>
+                  {row.category && (() => {
+                    const cat = categories.find((c) => c.name === row.category);
+                    return cat
+                      ? <CategoryBadge name={cat.name} color={cat.color} />
+                      : <CategoryBadge name={row.category} color="#8b8a96" />;
+                  })()}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
                   {row.card}

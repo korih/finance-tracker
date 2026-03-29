@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { addTransaction } from "@/app/actions/transactions";
 import { addRecurringExpense } from "@/app/actions/recurring";
+import { NameInput } from "@/components/name-input";
 
 const NEW_CARD_VALUE = "__new__";
 
@@ -45,9 +46,10 @@ const RECURRENCE_OPTIONS: { value: RecurrenceType; label: string }[] = [
 interface Props {
   spreadsheetId: string;
   existingCards: string[];
+  existingMerchants: string[];
 }
 
-export function AddTransactionDialog({ spreadsheetId, existingCards }: Props) {
+export function AddTransactionDialog({ spreadsheetId, existingCards, existingMerchants }: Props) {
   const [open, setOpen] = React.useState(false);
   const [date, setDate] = React.useState<Date>(new Date());
   const [calOpen, setCalOpen] = React.useState(false);
@@ -118,12 +120,12 @@ export function AddTransactionDialog({ spreadsheetId, existingCards }: Props) {
           {/* Merchant */}
           <div className="space-y-1.5">
             <Label htmlFor="merchant">Merchant</Label>
-            <Input
+            <NameInput
               id="merchant"
               name="merchant"
               placeholder="e.g. Whole Foods"
               required
-              autoComplete="off"
+              suggestions={existingMerchants}
             />
           </div>
 

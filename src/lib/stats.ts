@@ -8,6 +8,7 @@ export interface Transaction {
   name: string;
   amount: number;
   card: string;
+  category?: string | null;
 }
 
 export interface SpendingBreakdownEntry {

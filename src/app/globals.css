@@ -84,7 +84,7 @@
   --destructive:         var(--accent3);          /* pink — delete / error */
   --destructive-foreground: var(--bg-base);
   --border:              var(--vault-border);
-  --input:               var(--bg-card2);
+  --input:               #2e2e3b;
   --ring:                var(--accent);
   --chart-1:             var(--accent);
   --chart-2:             var(--accent2);
@@ -119,7 +119,7 @@
   --destructive:         var(--accent3);
   --destructive-foreground: var(--bg-base);
   --border:              var(--vault-border);
-  --input:               var(--bg-card2);
+  --input:               #2e2e3b;
   --ring:                var(--accent);
   --chart-1:             var(--accent);
   --chart-2:             var(--accent2);

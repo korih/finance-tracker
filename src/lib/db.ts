@@ -14,6 +14,7 @@ export interface TransactionRow {
   source: "sheet" | "manual" | "recurring";
   excluded: number; // 0 = active, 1 = soft-deleted
   recurring_rule_id: number | null;
+  category: string | null;
 }
 
 export async function getDB(): Promise<D1Database> {
@@ -50,7 +51,7 @@ export async function queryTransactions(
 ): Promise<Transaction[]> {
   const result = await db
     .prepare(
-      `SELECT timestamp, merchant, name, amount, card
+      `SELECT timestamp, merchant, name, amount, card, category
        FROM transactions
        WHERE spreadsheet_id = ? AND amount > 0 AND excluded = 0
        ORDER BY timestamp DESC`
@@ -72,7 +73,7 @@ export async function queryAllTransactions(
   const result = await db
     .prepare(
       `SELECT id, timestamp, merchant, name, amount, card,
-              inserted_at, spreadsheet_id, row_index, source, excluded, recurring_rule_id
+              inserted_at, spreadsheet_id, row_index, source, excluded, recurring_rule_id, category
        FROM transactions
        WHERE spreadsheet_id = ? AND amount > 0
        ORDER BY timestamp DESC`
@@ -101,6 +102,38 @@ export async function getDistinctCards(
     .all<{ card: string }>();
 
   return result.results.map((r) => r.card);
+}
+
+/** Distinct merchant names for autocomplete suggestions. */
+export async function getDistinctMerchants(
+  db: D1Database,
+  spreadsheetId: string
+): Promise<string[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT DISTINCT merchant FROM transactions
+       WHERE spreadsheet_id = ? AND merchant != '' AND excluded = 0
+       ORDER BY merchant ASC`
+    )
+    .bind(spreadsheetId)
+    .all<{ merchant: string }>();
+  return results.map((r) => r.merchant);
+}
+
+/** Distinct income sources for autocomplete suggestions. */
+export async function getDistinctSources(
+  db: D1Database,
+  spreadsheetId: string
+): Promise<string[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT DISTINCT source FROM income_entries
+       WHERE spreadsheet_id = ? AND source != ''
+       ORDER BY source ASC`
+    )
+    .bind(spreadsheetId)
+    .all<{ source: string }>();
+  return results.map((r) => r.source);
 }
 
 /** Hard-delete a manually entered transaction. */
