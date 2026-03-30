@@ -1,4 +1,7 @@
-import { Trash2, RotateCcw } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { ChevronUp, ChevronDown, ChevronsUpDown, Trash2, RotateCcw } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -14,13 +17,39 @@ import { EditTransactionButton } from "@/components/edit-transaction-button";
 import { CategoryBadge } from "@/components/category-badge";
 import type { Category } from "@/lib/classify";
 
+type SortKey = "timestamp" | "merchant" | "category" | "card" | "amount";
+type SortDir = "asc" | "desc";
+
 function formatDate(raw: string) {
-  // ISO dates (YYYY-MM-DD) are parsed as UTC midnight; append T12:00:00 so
-  // local-time display methods always land on the correct calendar day.
   const str = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? `${raw}T12:00:00` : raw;
   const d = new Date(str);
   if (isNaN(d.getTime())) return raw;
   return d.toLocaleDateString("default", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function sortRows(rows: TransactionRow[], key: SortKey, dir: SortDir): TransactionRow[] {
+  return [...rows].sort((a, b) => {
+    let cmp = 0;
+    if (key === "timestamp") {
+      cmp = new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+    } else if (key === "merchant") {
+      cmp = a.merchant.localeCompare(b.merchant);
+    } else if (key === "category") {
+      cmp = (a.category ?? "").localeCompare(b.category ?? "");
+    } else if (key === "card") {
+      cmp = (a.card ?? "").localeCompare(b.card ?? "");
+    } else if (key === "amount") {
+      cmp = a.amount - b.amount;
+    }
+    return dir === "asc" ? cmp : -cmp;
+  });
+}
+
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return <ChevronsUpDown className="h-3 w-3 opacity-40" />;
+  return dir === "asc"
+    ? <ChevronUp className="h-3 w-3" />
+    : <ChevronDown className="h-3 w-3" />;
 }
 
 export function TransactionsTable({
@@ -32,6 +61,9 @@ export function TransactionsTable({
   spreadsheetId: string;
   categories?: Category[];
 }) {
+  const [sortKey, setSortKey] = useState<SortKey>("timestamp");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
   if (rows.length === 0) {
     return (
       <p className="text-muted-foreground text-sm text-center py-8">
@@ -40,21 +72,64 @@ export function TransactionsTable({
     );
   }
 
+  function handleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      // Default direction per column
+      setSortDir(key === "timestamp" || key === "amount" ? "desc" : "asc");
+    }
+  }
+
+  const sorted = sortRows(rows, sortKey, sortDir);
+
+  function ColHead({
+    col,
+    label,
+    className,
+  }: {
+    col: SortKey;
+    label: string;
+    className?: string;
+  }) {
+    const active = sortKey === col;
+    return (
+      <TableHead className={className}>
+        <button
+          onClick={() => handleSort(col)}
+          className="flex items-center gap-1 select-none hover:text-foreground text-inherit"
+        >
+          {label}
+          <SortIcon active={active} dir={sortDir} />
+        </button>
+      </TableHead>
+    );
+  }
+
   return (
     <div className="rounded-md border overflow-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Merchant</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Card</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
+            <ColHead col="timestamp" label="Date" />
+            <ColHead col="merchant" label="Merchant" />
+            <ColHead col="category" label="Category" />
+            <ColHead col="card" label="Card" />
+            <TableHead className="text-right">
+              <button
+                onClick={() => handleSort("amount")}
+                className="flex items-center gap-1 select-none hover:text-foreground text-inherit ml-auto"
+              >
+                Amount
+                <SortIcon active={sortKey === "amount"} dir={sortDir} />
+              </button>
+            </TableHead>
             <TableHead className="w-20" />
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((row) => {
+          {sorted.map((row) => {
             const excluded = row.excluded === 1;
             return (
               <TableRow
@@ -62,18 +137,13 @@ export function TransactionsTable({
                 className={excluded ? "opacity-40" : undefined}
               >
                 <TableCell className="text-muted-foreground whitespace-nowrap">
-                  {excluded && (
-                    <span className="text-xs mr-1 line-through">
-                      {formatDate(row.timestamp)}
-                    </span>
+                  {excluded ? (
+                    <span className="text-xs line-through">{formatDate(row.timestamp)}</span>
+                  ) : (
+                    formatDate(row.timestamp)
                   )}
-                  {!excluded && formatDate(row.timestamp)}
                 </TableCell>
-                <TableCell
-                  className={
-                    excluded ? "line-through font-medium" : "font-medium"
-                  }
-                >
+                <TableCell className={excluded ? "line-through font-medium" : "font-medium"}>
                   {row.merchant}
                 </TableCell>
                 <TableCell>
@@ -84,13 +154,9 @@ export function TransactionsTable({
                       : <CategoryBadge name={row.category} color="#8b8a96" />;
                   })()}
                 </TableCell>
-                <TableCell className="text-muted-foreground text-sm">
-                  {row.card}
-                </TableCell>
+                <TableCell className="text-muted-foreground text-sm">{row.card}</TableCell>
                 <TableCell className="text-right tabular-nums">
-                  ${row.amount.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                  })}
+                  ${row.amount.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                 </TableCell>
                 <TableCell className="text-right p-1">
                   <div className="flex items-center justify-end gap-0.5">
