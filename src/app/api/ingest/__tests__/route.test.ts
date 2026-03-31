@@ -96,7 +96,7 @@ describe("GET /api/ingest", () => {
       expect(res.status).toBe(400);
     });
 
-    it("returns 400 when amount is not a number", async () => {
+    it("returns 400 when amount contains no numeric digits", async () => {
       const req = makeRequest({ id: "valid-api-id", merchant: "Walmart", amount: "abc" });
       const res = await GET(req);
       expect(res.status).toBe(400);
@@ -110,10 +110,36 @@ describe("GET /api/ingest", () => {
       expect(res.status).toBe(400);
     });
 
-    it("returns 400 when amount is negative", async () => {
-      const req = makeRequest({ id: "valid-api-id", merchant: "Walmart", amount: "-10" });
+    it("accepts a negative amount and treats it as positive", async () => {
+      const req = makeRequest({ id: "valid-api-id", merchant: "Walmart", amount: "-10.00" });
       const res = await GET(req);
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.amount).toBe(10);
+    });
+
+    it("strips currency symbol from amount ($25.50)", async () => {
+      const req = makeRequest({ id: "valid-api-id", merchant: "Walmart", amount: "$25.50" });
+      const res = await GET(req);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.amount).toBe(25.5);
+    });
+
+    it("strips comma thousands separator (1,234.56)", async () => {
+      const req = makeRequest({ id: "valid-api-id", merchant: "Walmart", amount: "1,234.56" });
+      const res = await GET(req);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.amount).toBe(1234.56);
+    });
+
+    it("handles amount with currency symbol and negative sign (-$9.99)", async () => {
+      const req = makeRequest({ id: "valid-api-id", merchant: "Walmart", amount: "-$9.99" });
+      const res = await GET(req);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.amount).toBe(9.99);
     });
   });
 

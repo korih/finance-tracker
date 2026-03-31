@@ -37,7 +37,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const amount = parseFloat(amountRaw);
+  // Strip currency symbols, spaces, and commas (e.g. "$1,234.50" → "1234.50")
+  const amountCleaned = amountRaw.replace(/[^0-9.]/g, "");
+  const amount = Math.abs(parseFloat(amountCleaned));
   if (isNaN(amount) || amount <= 0) {
     return NextResponse.json(
       { error: "amount must be a positive number" },
