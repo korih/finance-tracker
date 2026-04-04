@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-type NavTab = "expenses" | "income" | "overview";
+type NavTab = "budget" | "expenses" | "income" | "overview";
 
 const TABS: { value: NavTab; label: string; href: (id: string) => string }[] = [
+  { value: "budget",   label: "Budget",   href: (id) => `/dashboard/sheet/${id}/budget` },
   { value: "overview", label: "Overview", href: (id) => `/dashboard/sheet/${id}/overview` },
   { value: "expenses", label: "Expenses", href: (id) => `/dashboard/sheet/${id}/expenses` },
   { value: "income",   label: "Income",   href: (id) => `/dashboard/sheet/${id}/income` },
