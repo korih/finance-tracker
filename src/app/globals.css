@@ -147,3 +147,10 @@
     @apply font-sans;
   }
 }
+
+/* ── iOS PWA safe area ───────────────────────────────────────────────────── */
+/* Applied to sticky headers: keeps ≥1rem top padding in browser, bumps up  */
+/* to the actual status-bar height when running as a standalone PWA on iOS.  */
+.pt-safe-header {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
