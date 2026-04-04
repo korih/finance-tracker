@@ -100,7 +100,7 @@ function CategoryBudgetForm({
           {available.length === 0 ? (
             <p className="text-sm text-muted-foreground">All categories are already budgeted.</p>
           ) : (
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category} onValueChange={(v) => setCategory(v ?? "")}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
@@ -172,10 +172,12 @@ export function BudgetCategoryList({ spreadsheetId, categories, categoryBudgets 
     <div className="space-y-3">
       {/* Add button */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogTrigger asChild>
-          <button className="w-full border border-dashed border-border rounded-xl p-4 text-sm text-primary font-medium hover:bg-muted/40 transition-colors">
-            + Budget another category
-          </button>
+        <DialogTrigger
+          render={
+            <button className="w-full border border-dashed border-border rounded-xl p-4 text-sm text-primary font-medium hover:bg-muted/40 transition-colors" />
+          }
+        >
+          + Budget another category
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
